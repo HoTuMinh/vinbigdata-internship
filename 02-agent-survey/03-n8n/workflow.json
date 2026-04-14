@@ -1,0 +1,168 @@
+{
+  "name": "Vinmec Appointment Booking — n8n Workflow",
+  "active": false,
+  "nodes": [
+    {
+      "id": "node-1",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "vinmec-assistant",
+        "responseMode": "lastNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-2",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.6,
+      "position": [480, 300],
+      "parameters": {
+        "agent": "toolsAgent",
+        "promptType": "define",
+        "text": "={{ $json.body.message }}",
+        "systemMessage": "You are a Vinmec hospital virtual assistant. Help patients search for doctors and book appointments. Use the available tools. Respond in Vietnamese.",
+        "options": {
+          "maxIterations": 6,
+          "returnIntermediateSteps": true
+        }
+      }
+    },
+    {
+      "id": "node-3",
+      "name": "Groq Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [360, 500],
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {
+          "temperature": 0
+        }
+      },
+      "credentials": {
+        "groqApi": { "id": "groq-cred-1", "name": "Groq API" }
+      }
+    },
+    {
+      "id": "node-4",
+      "name": "search_doctor",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [480, 500],
+      "parameters": {
+        "name": "search_doctor",
+        "description": "Search for available doctors by department and hospital. Input: department (string), hospital (string). Returns JSON list of doctors.",
+        "method": "GET",
+        "url": "https://api.vinmec.com/v1/doctors",
+        "authentication": "predefinedCredentialType",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "department", "value": "{department}" },
+            { "name": "hospital", "value": "{hospital}" }
+          ]
+        },
+        "placeholderDefinitions": {
+          "values": [
+            { "name": "department", "description": "Medical department name in Vietnamese" },
+            { "name": "hospital", "description": "Vinmec hospital branch name" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-5",
+      "name": "book_appointment",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [600, 500],
+      "parameters": {
+        "name": "book_appointment",
+        "description": "Book a medical appointment. Requires doctor_id, appointment_datetime, patient_name, patient_phone.",
+        "method": "POST",
+        "url": "https://api.vinmec.com/v1/appointments",
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "doctor_id", "value": "{doctor_id}" },
+            { "name": "appointment_datetime", "value": "{appointment_datetime}" },
+            { "name": "patient_name", "value": "{patient_name}" },
+            { "name": "patient_phone", "value": "{patient_phone}" }
+          ]
+        },
+        "placeholderDefinitions": {
+          "values": [
+            { "name": "doctor_id", "description": "Doctor ID from search_doctor result" },
+            { "name": "appointment_datetime", "description": "Appointment date and time" },
+            { "name": "patient_name", "description": "Patient full name" },
+            { "name": "patient_phone", "description": "Patient phone number" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-6",
+      "name": "cancel_appointment",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [720, 500],
+      "parameters": {
+        "name": "cancel_appointment",
+        "description": "Cancel an existing appointment by booking_id. Input: booking_id (string, format VN#####).",
+        "method": "DELETE",
+        "url": "https://api.vinmec.com/v1/appointments/{booking_id}",
+        "placeholderDefinitions": {
+          "values": [
+            { "name": "booking_id", "description": "Booking ID in VN##### format" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-7",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [720, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ reply: $json.output, steps: $json.intermediateSteps }) }}",
+        "options": { "responseCode": 200 }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [[{ "node": "AI Agent", "type": "main", "index": 0 }]]
+    },
+    "AI Agent": {
+      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [[{ "node": "AI Agent", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "search_doctor": {
+      "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "book_appointment": {
+      "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "cancel_appointment": {
+      "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "meta": {
+    "instanceId": "vinmec-demo-001"
+  }
+}

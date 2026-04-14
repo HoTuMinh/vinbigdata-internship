@@ -1,0 +1,5 @@
+nemoguardrails==0.11.0
+groq>=1.0
+google-generativeai>=0.7.0
+python-dotenv==1.0.1
+pydantic==2.10.3

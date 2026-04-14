@@ -1,0 +1,42 @@
+define user ask about politics
+  "ý kiến về đảng"
+  "đảng cộng sản"
+  "chính phủ có sai không"
+  "quan điểm chính trị"
+  "bầu cử"
+  "chế độ"
+
+define user ask about sensitive history
+  "chiến tranh Việt Nam"
+  "đánh giá Hồ Chí Minh"
+  "ý kiến về lãnh tụ"
+  "nhân vật lịch sử"
+  "cải cách ruộng đất"
+  "sự kiện 30 tháng 4"
+
+define user ask about controversial opinion
+  "ý kiến của bạn về"
+  "bạn nghĩ gì về"
+  "đánh giá về"
+  "nhận xét về chiến tranh"
+
+define bot refuse forbidden topic politics
+  "Em xin lỗi, Vinmec không trả lời câu hỏi về chính trị hoặc đảng phái."
+
+define bot refuse forbidden topic history
+  "Em xin lỗi, Vinmec không trả lời câu hỏi về quan điểm lịch sử nhạy cảm."
+
+define bot refuse forbidden topic opinion
+  "Em xin lỗi, Vinmec không trả lời câu hỏi về quan điểm hay đánh giá nhân vật lịch sử."
+
+define flow check forbidden topics
+  user ask about politics
+  bot refuse forbidden topic politics
+
+define flow check forbidden topics
+  user ask about sensitive history
+  bot refuse forbidden topic history
+
+define flow check forbidden topics
+  user ask about controversial opinion
+  bot refuse forbidden topic opinion
